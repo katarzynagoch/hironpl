@@ -20,9 +20,12 @@ MAX_AZIMUTH_DIFF = 30.0   # max angle [degrees] between auth and osm sections (s
 EPS = 1e-6                # numeric tolerance
 BUFFER = 40.0             # buffer [m] around auth sections to select osm 'trunk' roads (additionally to 'motorway' roads)
 
+ver = 'v1_1'
+
+
 # Data paths
 root = 'C:\\PROCESSING\\2025_Multitemporal_highways_Poland'
-result_dir = "results_v1_0"
+result_dir = "results_%s"%ver
 auth = gpd.read_file(os.path.join(root,'motorways_expressroads_Poland',"poland_2023_motorways-expressroads_2180.gpkg")).to_crs(2180)
 # Assign ID to auth dataframe 
 auth = auth.reset_index().rename(columns={"index": "auth_id"})
@@ -192,13 +195,13 @@ hironpl['length_m'] = np.round(hironpl.length,2)
 
 # Save
 hironpl.to_file(
-    os.path.join(root,result_dir,"hiron-pl_interim_2180_v1_0.gpkg"),
+    os.path.join(root,result_dir,"hiron-pl_interim_2180_%s.gpkg"%ver),
     layer="osm-poland-260118_motorways_motorways-links_trunks",
     driver="GPKG"
 )
 
 auth.to_file(
-    os.path.join(root,result_dir,"INTERNAL_auth_matched_2180_v1_0.gpkg"),
+    os.path.join(root,result_dir,"INTERNAL_auth_matched_2180_%s.gpkg"%ver),
     layer="poland_2023_motorways-expressroads",
     driver="GPKG"
 )
@@ -211,7 +214,7 @@ print('database ready')
 # CONSISTENCY CHECK - check that motorway links have consitent data for each link
 # --------------------------------------------------
 hironpl_post = gpd.read_file(
-    os.path.join(root,result_dir,"hiron-pl_interim_2180_v1_0.gpkg"),
+    os.path.join(root,result_dir,"hiron-pl_interim_2180_%s.gpkg"%ver),
     layer="osm-poland-260118_motorways_motorways-links_trunks")
 hironpl_post["uid"] = range(len(hironpl_post))
 
@@ -272,7 +275,7 @@ for i, comp in enumerate(components):
 print('graph components selected')
 
 # --------------------------------------------------
-# 4. Resolve attributes per motorway link segment using the newest section
+# 4. Resolve attributes per motorway link segment using the oldest section
 # --------------------------------------------------
 links = links[links.link_group>=0]
 # Boolean flags
@@ -292,7 +295,7 @@ for group_id, group in links.groupby("link_group"):
     
     # Determine newest section
     dates = group.apply(date_tuple, axis=1)
-    winner_idx = dates.idxmax()
+    winner_idx = dates.idxmin()
     winner = links.loc[winner_idx]
      
     # Propagate attributes to all sections
@@ -332,7 +335,7 @@ hironpl_indexed = hironpl_indexed.rename(columns={"name": "road_name"})
 hironpl_indexed["road_class"] = np.where(
     hironpl_indexed["road_name"].str.startswith("A", na=False),
     "motorway",
-    "expressroad"
+    "expressway"
 )
 new_order = [
     "osm_id",
@@ -351,19 +354,24 @@ new_order = [
 
 hironpl_indexed = hironpl_indexed[new_order]
 
+# --------------------------------------------------
+# 7. Check data types
+# --------------------------------------------------
+for col in ["built_year", "built_month", "built_day"]:
+    hironpl_indexed[col] = hironpl_indexed[col].astype(int)
 
 # -----------------------------------------------------------------------------
 
 # Save
 
 hironpl_indexed.to_file(
-    os.path.join(root,result_dir,"hiron-pl_2180_v1_0.gpkg"),
+    os.path.join(root,result_dir,"hiron-pl_2180_%s.gpkg"%ver),
     layer="osm-poland-260118_motorways_motorways-links_trunks",
     driver="GPKG"
 )
 
 links_modified.to_file(
-    os.path.join(root,result_dir,"INTERNAL_motorway-links_resolved_2180_v1_0.gpkg"),
+    os.path.join(root,result_dir,"INTERNAL_motorway-links_resolved_2180_%s.gpkg"%ver),
     layer="osm-poland-260118_motorways-links",
     driver="GPKG"
 )
