@@ -17,9 +17,10 @@ import os
 from shapely.ops import unary_union, linemerge
 from shapely.geometry import LineString
 from matplotlib.patches import Patch
+import matplotlib.colors as mcolors
 
 # Define the path to the geopackage and layer name
-root = 'C:\\PROCESSING\\2025_Multitemporal_highways_Poland'
+root = 'C:\\PROCESSING\\2025_hironpl'
 v = 'v1_1'
 
 # Read the geopackage with hiron-pl data, in Polish CRS 2180
@@ -94,7 +95,7 @@ df['cumulative_length'] = df['effective_length'].cumsum()
 # Set seaborn plot style
 sns.set_style('white')
 
-fig, ax1 = plt.subplots(figsize=(16*cm, 5*cm), dpi=300)
+fig, ax1 = plt.subplots(figsize=(10*cm, 5*cm), dpi=300)
 
 # --- Barplot (left axis) ---
 sns.barplot(
@@ -112,8 +113,8 @@ ax1.set_xlabel('Year of construction', fontname='Arial', fontsize=fs)
 ax1.set_ylabel('Length [km]', fontname='Arial', fontsize=fs)
 
 # --- X ticks ---
-ax1.set_xticks(np.arange(-1, 99, 10))
-ax1.set_xticklabels(np.arange(1935, 2026, 10), fontname='Arial', fontsize=fs)
+ax1.set_xticks(np.arange(-1, 99, 15))
+ax1.set_xticklabels(np.arange(1935, 2026, 15), fontname='Arial', fontsize=fs)
 
 ax1.set_xlim(left=-1)
 
@@ -127,7 +128,7 @@ ax2.plot(
     lw=0.8,
     linestyle='-',
     marker='o',
-    ms=2,
+    ms=1,
     markerfacecolor='none'
 )
 
@@ -159,34 +160,53 @@ poland_data = hiron.to_crs(poland_border.crs)
 fig, axs = plt.subplots(1, 3, figsize=(20*cm, 8*cm), dpi=300)
 
 # Plot the oldest highways on the first subplot
-old_roads = poland_data[poland_data.built_year<=2000]
+break1=2004
+break2=2015
+old_roads = poland_data[poland_data.built_year<=break1]
 old_roads.plot(color='azure', ax=axs[0], legend=False)
 poland_border.plot(ax=axs[0], facecolor='darkgrey', edgecolor='black')
-axs[0].set_title('1936-2000', fontname='Arial', fontsize=fs)
+axs[0].set_title('1936-%s'%break1, fontname='Arial', fontsize=fs)
 axs[0].axis('off')
 
 # Plot the midlle ages on the second subplot
-old_roads = poland_data[poland_data.built_year<=2000]
+old_roads = poland_data[poland_data.built_year<=break1]
 old_roads.plot(color='dimgrey', ax=axs[1], legend=False)
-new_roads = poland_data[(poland_data.built_year>2000) & (poland_data.built_year<=2010)]
+new_roads = poland_data[(poland_data.built_year>break1) & (poland_data.built_year<=break2)]
 new_roads.plot(color='azure', ax=axs[1], legend=False)
 poland_border.plot(ax=axs[1], facecolor='darkgrey', edgecolor='black')
-axs[1].set_title('2000-2010', fontname='Arial', fontsize=fs)
+axs[1].set_title('%s-%s'%(break1+1, break2), fontname='Arial', fontsize=fs)
 axs[1].axis('off')
 
 # Plot the newest roads on the last subplot
-old_roads = poland_data[poland_data.built_year<=2010]
+old_roads = poland_data[poland_data.built_year<=break2]
 old_roads.plot(color='dimgrey', ax=axs[2], legend=False)
-new_roads = poland_data[poland_data.built_year>2010]
+new_roads = poland_data[poland_data.built_year>break2]
 new_roads.plot(color='azure', ax=axs[2], legend=False)
 poland_border.plot(ax=axs[2], facecolor='darkgrey', edgecolor='black')
-axs[2].set_title('2010-2020', fontname='Arial', fontsize=fs)
+axs[2].set_title('%s-2023'%(break2+1), fontname='Arial', fontsize=fs)
 axs[2].axis('off')
 
 # Layout so plots do not overlap
 fig.tight_layout()
 # Save the plot
 plt.savefig(os.path.join(root,result_dir,'vis','stage_maps_HiRoN-PL_%s.png'%v), dpi=300)
+# Show the plot
+plt.show()
+
+
+####################
+# Map showing motorway and expressway distinction
+
+fig, axs = plt.subplots(1, 1, figsize=(8*cm, 8*cm), dpi=300)
+# Plot the oldest highways on the first subplot
+poland_data.plot(column='road_class', ax=axs, legend=False, cmap='RdYlGn_r')
+poland_border.plot(ax=axs, facecolor='lightgrey', edgecolor='black')
+axs.set_title('road class', fontname='Arial', fontsize=fs)
+axs.axis('off')
+# Layout so plots do not overlap
+fig.tight_layout()
+# Save the plot
+plt.savefig(os.path.join(root,result_dir,'vis','road_class_HiRoN-PL_%s.png'%v), dpi=300)
 # Show the plot
 plt.show()
 
@@ -212,23 +232,35 @@ table_data.to_csv(os.path.join(root,result_dir,'vis','cumulative_length_comparis
 #####################################################
 
 # Define the classes of road section commissioning
-#built_classes = [[1936,1980], [1981,1990], [1991,2000], [2001,2012], [2011,2023]]
-built_classes = [[1936,1980], [1981,2000], [2001,2012]]
+built_classes_5 = [[1936,1980], [1981,1989], [1990,2004], [2005,2014], [2015,2023]] 
+# Create a selected colour palette from turbo cmap
 
-built_colors = ['#E74C3C','#C32C57','#F38F1D','#F5EC50','#67D120']
+built_classes_6 = [[1936,1945], [1946, 1980],[1981,1989], [1990,2004], [2005,2014], [2015,2023]]
+# built_classes = [[1936,1980], [1981,2000], [2001,2012]]
+
+# Number of classes/colors
+n_classes = len(built_classes_5)
+# Generate colors from selected colormap
+cmap = plt.get_cmap("turbo")
+# built_colors_5 = [mcolors.to_hex(cmap(i / (n_classes - 1))) for i in range(n_classes)]
+
+built_colors_5 = ['#004BE0','#00FFFF','#00FF00','#FFFF00','#FF0000'] # blue, cyan, green, yellow, red
+built_colors_6 = ['#569000','#90F000','#FFFF00','#FFD040','#FF0000','#800000']
 # pantone built_colors_2012 = ['#00899b','#fdac53','#dd4132']
 built_colors_2012 = ['#121f3c', '#00899b','#dd4132']
 
+bg_color = 'whitesmoke'#'#303030'
+
 # Create labels
-built_labels = [f"{start}-{end}" for start, end in built_classes]
+built_labels = [f"{start}-{end}" for start, end in built_classes_5]
 
 # Map period → color
-color_map = dict(zip(built_labels, built_colors_2012))
+color_map = dict(zip(built_labels, built_colors_5))
 
 def assign_period(year):
     if pd.isna(year):
         return None
-    for start, end in built_classes:
+    for start, end in built_classes_5:
         if start <= year <= end:
             return f"{start}-{end}"
     return None
@@ -298,22 +330,25 @@ axs = axs.flatten()
 
 # --- Poland ---
 pl_data_plot = poland_data[~poland_data['built_class_colour'].isna()]
+pl_data_plot.plot(color='black', lw=3, ax=axs[0], legend=False)
 pl_data_plot.plot(color=pl_data_plot['built_class_colour'], ax=axs[0], legend=False)
-poland_border.plot(ax=axs[0], facecolor='lightgrey', edgecolor='black')
+poland_border.plot(ax=axs[0], facecolor=bg_color, edgecolor='black')
 axs[0].set_title('HiRoN-PL', fontname='Arial', fontsize=fs)
 axs[0].axis('off')
 
 # --- EU ---
 eu_data_plot = eu_data_clipped[~eu_data_clipped['built_class_colour'].isna()]
+eu_data_plot.plot(color='black', lw=3, ax=axs[1], legend=False)
 eu_data_plot.plot(color=eu_data_plot['built_class_colour'],  ax=axs[1], legend=False)
-poland_border.plot(ax=axs[1], facecolor='lightgrey', edgecolor='black')
+poland_border.plot(ax=axs[1], facecolor=bg_color, edgecolor='black')
 axs[1].set_title('DG REGIO', fontname='Arial', fontsize=fs)
 axs[1].axis('off')
 
 # --- VA ---
 va_data_plot = va_data_clipped[~va_data_clipped['built_class_colour'].isna()]
+va_data_plot.plot(color='black', lw=3, ax=axs[2], legend=False)
 va_data_plot.plot(color=va_data_plot['built_class_colour'], ax=axs[2], legend=False)
-poland_border.plot(ax=axs[2], facecolor='lightgrey', edgecolor='black')
+poland_border.plot(ax=axs[2], facecolor=bg_color, edgecolor='black')
 axs[2].set_title('VA Museum', fontname='Arial', fontsize=fs)
 axs[2].axis('off')
 
