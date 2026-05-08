@@ -330,6 +330,7 @@ axs = axs.flatten()
 
 # --- Poland ---
 pl_data_plot = poland_data[~poland_data['built_class_colour'].isna()]
+pl_data_plot = pl_data_plot[pl_data_plot.road_class=='motorway']
 pl_data_plot.plot(color='black', lw=3, ax=axs[0], legend=False)
 pl_data_plot.plot(color=pl_data_plot['built_class_colour'], ax=axs[0], legend=False)
 poland_border.plot(ax=axs[0], facecolor=bg_color, edgecolor='black')
@@ -426,23 +427,23 @@ plt.plot(
     linestyle='-',
     label='HiRoN-PL')
 
-plt.plot(
-    eu_df['year'],
-    eu_df['cumulative_length'],
-    marker='o',lw=0.4,ms=3,color='orangered',
-    markerfacecolor='none',   
-    markeredgecolor='orangered',
-    linestyle='-',
-    label='DG REGIO')
+# plt.plot(
+#     eu_df['year'],
+#     eu_df['cumulative_length'],
+#     marker='o',lw=0.4,ms=3,color='orangered',
+#     markerfacecolor='none',   
+#     markeredgecolor='orangered',
+#     linestyle='-',
+#     label='DG REGIO')
 
-plt.plot(
-    va_df['year'],
-    va_df['cumulative_length'],
-    marker='o',lw=0.4,ms=3,color='darkblue',
-    markerfacecolor='none',
-    markeredgecolor='darkblue',
-    linestyle='-',
-    label='VA Museum')
+# plt.plot(
+#     va_df['year'],
+#     va_df['cumulative_length'],
+#     marker='o',lw=0.4,ms=3,color='darkblue',
+#     markerfacecolor='none',
+#     markeredgecolor='darkblue',
+#     linestyle='-',
+#     label='VA Museum')
 
 plt.plot(
     ref_df['year'],
@@ -520,35 +521,45 @@ df = df.dropna()
 df = df[(df.year>=period[0]) & (df.year<=period[1])]
 
 
+
+# Create df only for hiron...
+df_hiron = pd.DataFrame({'year': range(1936, 2026)})
+df_hiron = df_hiron.merge(hiron_df[['year', 'cumulative_length']], on='year', how='left') \
+       .merge(ref_df[['year', 'reference_length']], on='year', how='left')
+df_hiron = df_hiron.dropna()       
+df_hiron['hiron_rel'] = df_hiron['cumulative_length'] / df_hiron['reference_length'] * 100
+df_hiron['ref_rel'] = 100  # reference baseline
+df_hiron = df_hiron[(df_hiron.year>=1980) & (df_hiron.year<=2025)]
+
 plt.figure(figsize=(9*cm, 8*cm), dpi=300)
 
 plt.plot(
-    df['year'], df['hiron_rel'],
+    df_hiron['year'], df_hiron['hiron_rel'],
     marker='o', lw=0.4, ms=3, color='darkgreen',
     markerfacecolor='none', markeredgecolor='darkgreen',
     linestyle='-',
     label='HiRoN-PL'
 )
 
-plt.plot(
-    df['year'], df['eu_rel'],
-    marker='o', lw=0.4, ms=3, color='orangered',
-    markerfacecolor='none', markeredgecolor='orangered',
-    linestyle='-',
-    label='DG REGIO'
-)
+# plt.plot(
+#     df['year'], df['eu_rel'],
+#     marker='o', lw=0.4, ms=3, color='orangered',
+#     markerfacecolor='none', markeredgecolor='orangered',
+#     linestyle='-',
+#     label='DG REGIO'
+# )
 
-plt.plot(
-    df['year'], df['va_rel'],
-    marker='o', lw=0.4, ms=3, color='darkblue',
-    markerfacecolor='none', markeredgecolor='darkblue',
-    linestyle='-',
-    label='VA Museum'
-)
+# plt.plot(
+#     df['year'], df['va_rel'],
+#     marker='o', lw=0.4, ms=3, color='darkblue',
+#     markerfacecolor='none', markeredgecolor='darkblue',
+#     linestyle='-',
+#     label='VA Museum'
+# )
 
 # Reference = 100%
 plt.plot(
-    df['year'], df['ref_rel'],
+    df_hiron['year'], df_hiron['ref_rel'],
     color='black',
     linestyle='--',
     lw=0.6,
@@ -559,8 +570,8 @@ plt.plot(
 plt.xlabel('Year', fontname='Arial', fontsize=fs)
 plt.ylabel('Relative cumulative length (%)', fontname='Arial', fontsize=fs)
 
-ticks = np.arange(1935, 2026, 15)
-# plt.xticks(ticks, fontname='Arial', fontsize=fs)
+ticks = np.arange(1983, 2025, 10)
+plt.xticks(ticks, fontname='Arial', fontsize=fs)
 plt.yticks(fontname='Arial', fontsize=fs)
 
 plt.legend(prop={'family': 'Arial', 'size': fs})
@@ -623,16 +634,3 @@ for idx, row in hiron.iterrows():
 hiron['effective_length'] = hiron['length_m']
 hiron.loc[hiron['is_dual'], 'effective_length'] /= 2
 
-
-# # Create a histogram of the segment counts - not used
-# plt.figure(figsize=(16*cm, 6.5*cm), dpi=300)
-# sns.histplot(hiron['built_year'], bins=range(1935, 2026), edgecolor='black', kde=False, color='cornflowerblue')
-# # plt.title('Distribution of Road Segments by Year of Construction', fontname='Arial', fontsize=11)
-# plt.xlabel('Year of construction', fontname='Arial', fontsize=fs)
-# plt.ylabel('Number of road segments', fontname='Arial', fontsize=fs)
-# ticks = np.arange(1935, 2026, 10)
-# plt.xticks(ticks, rotation=0, fontname='Arial', fontsize=fs)
-# plt.yticks(fontname='Arial', fontsize=fs)
-# plt.tight_layout()
-# plt.savefig(os.path.join(root,result_dir,'vis','road_segments_histogram_%s.png'%v), dpi=300)
-# plt.show()
